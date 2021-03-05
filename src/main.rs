@@ -12,31 +12,31 @@ struct Variables {
 }
 
 // Main RK4 algorithm
-fn rk4(fxx: &dyn Fn(f64, f64, f64, f64, f64) -> f64, 
-       fyy: &dyn Fn(f64, f64, f64, f64, f64) -> f64,
-       fvx: &dyn Fn(f64, f64, f64, f64, f64) -> f64,
-       fvy: &dyn Fn(f64, f64, f64, f64, f64) -> f64,
-       t: f64, x: f64, y: f64, vx: f64, vy: f64, dt: f64) -> Variables {
+fn rk4(fxx: &dyn Fn(f64) -> f64, 
+       fyy: &dyn Fn(f64) -> f64,
+       fvx: &dyn Fn()    -> f64,
+       fvy: &dyn Fn()    -> f64,
+       x: f64, y: f64, vx: f64, vy: f64, dt: f64) -> Variables {
 
-    let kx1 =  fxx(t, x, y, vx, vy);
-    let ky1 =  fyy(t, x, y, vx, vy);
-    let kvx1 = fvx(t, x, y, vx, vy);
-    let kvy1 = fvy(t, x, y, vx, vy);
+    let kx1 =  fxx(vx);
+    let ky1 =  fyy(vy);
+    let kvx1 = fvx();
+    let kvy1 = fvy();
 
-    let kx2 =  fxx(t + 0.5 * dt, x + dt * 0.5 * kx1, y + dt * 0.5 * ky1, vx + dt * 0.5 * kvx1, vy + dt * 0.5 * kvy1);
-    let ky2 =  fyy(t + 0.5 * dt, x + dt * 0.5 * kx1, y + dt * 0.5 * ky1, vx + dt * 0.5 * kvx1, vy + dt * 0.5 * kvy1);
-    let kvx2 = fvx(t + 0.5 * dt, x + dt * 0.5 * kx1, y + dt * 0.5 * ky1, vx + dt * 0.5 * kvx1, vy + dt * 0.5 * kvy1);
-    let kvy2 = fvy(t + 0.5 * dt, x + dt * 0.5 * kx1, y + dt * 0.5 * ky1, vx + dt * 0.5 * kvx1, vy + dt * 0.5 * kvy1);
+    let kx2 =  fxx(vx + dt * 0.5 * kvx1);
+    let ky2 =  fyy(vy + dt * 0.5 * kvy1);
+    let kvx2 = fvx();
+    let kvy2 = fvy();
 
-    let kx3 =  fxx(t + 0.5 * dt, x + dt * 0.5 * kx2, y + dt * 0.5 * ky2, vx + dt * 0.5 * kvx2, vy + dt * 0.5 * kvy2);
-    let ky3 =  fyy(t + 0.5 * dt, x + dt * 0.5 * kx2, y + dt * 0.5 * ky2, vx + dt * 0.5 * kvx2, vy + dt * 0.5 * kvy2);
-    let kvx3 = fvx(t + 0.5 * dt, x + dt * 0.5 * kx2, y + dt * 0.5 * ky2, vx + dt * 0.5 * kvx2, vy + dt * 0.5 * kvy2);
-    let kvy3 = fvy(t + 0.5 * dt, x + dt * 0.5 * kx2, y + dt * 0.5 * ky2, vx + dt * 0.5 * kvx2, vy + dt * 0.5 * kvy2);
+    let kx3 =  fxx(vx + dt * 0.5 * kvx2);
+    let ky3 =  fyy(vy + dt * 0.5 * kvy2);
+    let kvx3 = fvx();
+    let kvy3 = fvy();
 
-    let kx4 =  fxx(t + dt, x + dt * kx3, y + dt * ky3, vx + dt * kvx3, vy + dt * kvy3);
-    let ky4 =  fyy(t + dt, x + dt * kx3, y + dt * ky3, vx + dt * kvx3, vy + dt * kvy3);
-    let kvx4 = fvx(t + dt, x + dt * kx3, y + dt * ky3, vx + dt * kvx3, vy + dt * kvy3);
-    let kvy4 = fvy(t + dt, x + dt * kx3, y + dt * ky3, vx + dt * kvx3, vy + dt * kvy3);
+    let kx4 =  fxx(vx + dt * kvx3);
+    let ky4 =  fyy(vy + dt * kvy3);
+    let kvx4 = fvx();
+    let kvy4 = fvy();
 
     return Variables {
         x:  x  + (1.0 / 6.0) * dt * (kx1 + 2.0 * kx2 + 2.0 * kx3 + kx4),
@@ -47,21 +47,20 @@ fn rk4(fxx: &dyn Fn(f64, f64, f64, f64, f64) -> f64,
 }
 
 // Functions of evolving quantities pulled from pertinent differential equations
-fn f_x(_t: f64, _x: f64, _y: f64, vx: f64, _vy: f64) -> f64 {
+fn f_x(vx: f64) -> f64 {
     vx
 }
-fn f_y(_t: f64, _x: f64, _y: f64, _vx: f64, vy: f64) -> f64 {
+fn f_y(vy: f64) -> f64 {
     vy
 }
-fn f_vx(_t: f64, _x: f64, _y: f64, _vx: f64, _vy: f64) -> f64 {
+fn f_vx() -> f64 {
     0.0
 }
-fn f_vy(_t: f64, _x: f64, _y: f64, _vx: f64, _vy: f64) -> f64 {
+fn f_vy() -> f64 {
     -9.8
 }
 
 fn main() {
-    let mut t  = 0.0;
     let mut x  = 0.0;
     let mut y  = 0.0;
     let mut vx = 4.0;
@@ -73,7 +72,7 @@ fn main() {
  
     while y >= 0.0 {
  
-        let va = rk4(&f_x, &f_y, &f_vx, &f_vy, t, x, y, vx, vy, step);
+        let va = rk4(&f_x, &f_y, &f_vx, &f_vy, x, y, vx, vy, step);
 
         x  = va.x;
         y  = va.y;
@@ -82,8 +81,6 @@ fn main() {
 
         vecx.push(x);
         vecy.push(y);
-
-        t += step;
 
         counter += 1;
 
